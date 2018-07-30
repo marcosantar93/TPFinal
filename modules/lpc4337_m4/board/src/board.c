@@ -158,8 +158,8 @@ void Board_Buttons_Init(void)
 	};
 
 	Chip_SCU_SetPinMuxing(pin_config, (sizeof(pin_config) / sizeof(PINMUX_GRP_T)));
-
-	for (uint8_t i = 0; i < (sizeof(gpioBtnBits) / sizeof(io_port_t)); i++) {
+	uint8_t i;
+	for ( i = 0; i < (sizeof(gpioBtnBits) / sizeof(io_port_t)); i++) {
 		Chip_GPIO_SetPinDIRInput(LPC_GPIO_PORT, gpioBtnBits[i].port, gpioBtnBits[i].pin);
 	}
 }
@@ -167,8 +167,8 @@ void Board_Buttons_Init(void)
 uint32_t Buttons_GetStatus(void)
 {
 	uint8_t ret = NO_BUTTON_PRESSED;
-
-	for (uint8_t i = 0; i < (sizeof(gpioBtnBits) / sizeof(io_port_t)); i++) {
+	uint8_t i;
+	for (i = 0; i < (sizeof(gpioBtnBits) / sizeof(io_port_t)); i++) {
 		if (Chip_GPIO_GetPinState(LPC_GPIO_PORT, gpioBtnBits[i].port, gpioBtnBits[i].pin) == 0) {
 			ret |= gpioBtnIDs[i];
 		}

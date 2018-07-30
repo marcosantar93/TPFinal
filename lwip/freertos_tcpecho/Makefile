@@ -1,4 +1,5 @@
-# Copyright 2015, Pablo Ridolfi
+# Copyright 2016, Pablo Ridolfi
+# Copyright 2017, Eric Pernia
 # All rights reserved.
 #
 # This file is part of Workspace.
@@ -29,20 +30,23 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-lwip_PATH := modules/lpc4337_m4/lwip
+# application name
+PROJECT_NAME := $(notdir $(PROJECT))
 
-lwip_SRC_FILES += $(wildcard $(lwip_PATH)/src/api/*.c)
-lwip_SRC_FILES += $(wildcard $(lwip_PATH)/src/arch/*.c)
-lwip_SRC_FILES += $(wildcard $(lwip_PATH)/src/core/*.c)
-lwip_SRC_FILES += $(wildcard $(lwip_PATH)/src/core/ipv4/*.c)
-lwip_SRC_FILES += $(wildcard $(lwip_PATH)/src/netif/*.c)
+# Modules needed by the application
+PROJECT_MODULES := modules/$(TARGET)/lwip \
+				   modules/$(TARGET)/sapi_rtos \
+                   modules/$(TARGET)/freertos \
+                   modules/$(TARGET)/base \
+                   modules/$(TARGET)/board \
+                   modules/$(TARGET)/chip 
 
-lwip_INC_FOLDERS += $(lwip_PATH)/inc \
-					$(lwip_PATH)/inc/ipv4 \
-					$(lwip_PATH)/inc/posic
+# source files folder
+PROJECT_SRC_FOLDERS := $(PROJECT)/src
 
-lwip_SRC_FOLDERS += $(lwip_PATH)/src/api       \
-               $(lwip_PATH)/src/arch      \
-               $(lwip_PATH)/src/core      \
-               $(lwip_PATH)/src/core/ipv4 \
-               $(lwip_PATH)/src/netif
+# header files folder
+PROJECT_INC_FOLDERS := $(PROJECT)/inc
+
+# source files
+PROJECT_C_FILES := $(wildcard $(PROJECT)/src/*.c)
+PROJECT_ASM_FILES := $(wildcard $(PROJECT)/src/*.S)

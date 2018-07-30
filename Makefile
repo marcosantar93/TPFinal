@@ -32,9 +32,9 @@
 
 -include project.mk
 
-PROJECT ?= examples/blinky
+PROJECT ?= lwip/freertos_tcpecho
 TARGET ?= lpc4337_m4
-BOARD ?= edu_ciaa_nxp
+BOARD ?= ciaa_nxp
 
 include $(PROJECT)/Makefile
 
