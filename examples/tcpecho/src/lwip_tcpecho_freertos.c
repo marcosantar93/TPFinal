@@ -38,6 +38,7 @@
 #include "lwip/netif.h"
 #include "lwip/timers.h"
 #include "netif/etharp.h"
+//#include "lwipopts.h"
 
 #if LWIP_DHCP
 #include "lwip/dhcp.h"

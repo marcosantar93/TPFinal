@@ -816,7 +816,7 @@ void ETH_IRQHandler(void)
 	/* Interrupts are not used without an RTOS */
 	NVIC_DisableIRQ((IRQn_Type) ETHERNET_IRQn);
 #else
-	signed portBASE_TYPE xRecTaskWoken = pdFALSE, XTXTaskWoken = pdFALSE;
+	int32_t xRecTaskWoken = pdFALSE, XTXTaskWoken = pdFALSE;
 	uint32_t ints;
 
 	/* Get pending interrupts */
