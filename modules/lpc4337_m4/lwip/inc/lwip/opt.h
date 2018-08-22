@@ -2130,4 +2130,18 @@
 #define DNS_DEBUG                       LWIP_DBG_OFF
 #endif
 
+/**
+ * Macro/function to check whether lwIP's threading/locking
+ * requirements are satisfied during current function call.
+ * This macro usually calls a function that is implemented in the OS-dependent
+ * sys layer and performs the following checks:
+ * - Not in ISR (this should be checked for NO_SYS==1, too!)
+ * - If @ref LWIP_TCPIP_CORE_LOCKING = 1: TCPIP core lock is held
+ * - If @ref LWIP_TCPIP_CORE_LOCKING = 0: function is called from TCPIP thread
+ * @see @ref multithreading
+ */
+#if !defined LWIP_ASSERT_CORE_LOCKED || defined __DOXYGEN__
+#define LWIP_ASSERT_CORE_LOCKED()
+#endif
+
 #endif /* __LWIP_OPT_H__ */
