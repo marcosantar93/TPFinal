@@ -36,114 +36,159 @@
 
 static int inpub_id;
 
+/**
+ * C++ version 0.4 char* style "itoa":
+ * Written by Lukás Chmela
+ * Released under GPLv3.
+
+ */
+char* itoa(int value, char* result, int base) {
+	// check that the base if valid
+	if (base < 2 || base > 36) {
+		*result = '\0';
+		return result;
+	}
+
+	char* ptr = result, *ptr1 = result, tmp_char;
+	int tmp_value;
+
+	do {
+		tmp_value = value;
+		value /= base;
+		*ptr++ =
+				"zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz"[35
+						+ (tmp_value - value * base)];
+	} while (value);
+
+	// Apply negative sign
+	if (tmp_value < 0)
+		*ptr++ = '-';
+	*ptr-- = '\0';
+	while (ptr1 < ptr) {
+		tmp_char = *ptr;
+		*ptr-- = *ptr1;
+		*ptr1++ = tmp_char;
+	}
+	return result;
+}
+
 /* Called when publish is complete either with sucess or failure */
-static void mqtt_pub_request_cb(void *arg, err_t result)
-{
-  if(result != ERR_OK) {
-    printf("Publish result: %d\n", result);
-  }
+static void mqtt_pub_request_cb(void *arg, err_t result) {
+	if (result != ERR_OK) {
+		printf("Publish result: %d\n", result);
+	}
 }
 
 // Using outgoing publish
 
-void mqtt_client_publish(mqtt_client_t *client, void *arg)
-{
-  const char *pub_payload= "TEST:";
-  err_t err;
-  u8_t qos = 0; /* 0 1 or 2, see MQTT specification */
-  u8_t retain = 0; /* No don't retain such crappy payload... */
-  err = mqtt_publish(client, "PW/V2/CIAA_NXP/NY/TEST", pub_payload, strlen(pub_payload), qos, retain, mqtt_pub_request_cb, arg);
-  if(err != ERR_OK) {
-    printf("Publish err: %d\n", err);
-  }
+void mqtt_client_publish(mqtt_client_t *client, void *arg) {
+	messageMqtt_t *msg = (messageMqtt_t*) arg;
+	if (msg != NULL) {
+		err_t err;
+		err = mqtt_publish(client, msg->topic, msg->payload,
+				strlen(msg->payload), msg->qos, msg->retain,
+				mqtt_pub_request_cb, NULL); //What's better, a general callback or unique callbacks?
+		if (err != ERR_OK) {
+			printf("Publish err: %d\n", err);
+		}
+	} else {
+		err_t err;
+		err = mqtt_publish(client, "PW/V2/CIAA_NXP/TEST", "ERROR:ARGSTOFUNC",
+				strlen("ERROR:ARGSTOFUNC"), 0, 0,
+				mqtt_pub_request_cb, NULL); //What's better, a general callback or unique callbacks?
+		if (err != ERR_OK) {
+			printf("Publish err: %d\n", err);
+		}
+	}
 }
 
 // Implementing callbacks for incoming publish and data
 
 /* The idea is to demultiplex topic and create some reference to be used in data callbacks
-   Example here uses a global variable, better would be to use a member in arg
-   If RAM and CPU budget allows it, the easiest implementation might be to just take a copy of
-   the topic string and use it in mqtt_incoming_data_cb
-*/
+ Example here uses a global variable, better would be to use a member in arg
+ If RAM and CPU budget allows it, the easiest implementation might be to just take a copy of
+ the topic string and use it in mqtt_incoming_data_cb
+ */
 
-void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags)
-{
-  printf("Incoming publish payload with length %d, flags %u\n", len, (unsigned int)flags);
+void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags) {
+	printf("Incoming publish payload with length %d, flags %u\n", len,
+			(unsigned int) flags);
 
-  if(flags & MQTT_DATA_FLAG_LAST) {
-    /* Last fragment of payload received (or whole part if payload fits receive buffer
-       See MQTT_VAR_HEADER_BUFFER_LEN)  */
+	if (flags & MQTT_DATA_FLAG_LAST) {
+		/* Last fragment of payload received (or whole part if payload fits receive buffer
+		 See MQTT_VAR_HEADER_BUFFER_LEN)  */
 
-    /* Call function or do action depending on reference, in this case inpub_id */
-    if(inpub_id == 0) {
-      /* Don't trust the publisher, check zero termination */
-      if(data[len-1] == 0) {
-        printf("mqtt_incoming_data_cb: %s\n", (const char *)data);
-      }
-    } else if(inpub_id == 1) {
-      /* Call an 'A' function... */
-    } else {
-      printf("mqtt_incoming_data_cb: Ignoring payload...\n");
-    }
-  } else {
-    /* Handle fragmented payload, store in buffer, write to file or whatever */
-  }
+		/* Call function or do action depending on reference, in this case inpub_id */
+		if (inpub_id == 0) {
+			/* Don't trust the publisher, check zero termination */
+			if (data[len - 1] == 0) {
+				printf("mqtt_incoming_data_cb: %s\n", (const char *) data);
+			}
+		} else if (inpub_id == 1) {
+			/* Call an 'A' function... */
+		} else {
+			printf("mqtt_incoming_data_cb: Ignoring payload...\n");
+		}
+	} else {
+		/* Handle fragmented payload, store in buffer, write to file or whatever */
+	}
 }
 
-void mqtt_incoming_publish_cb(void *arg, const char *topic, u32_t tot_len)
-{
-  printf("Incoming publish at topic %s with total length %u\n", topic, (unsigned int)tot_len);
+void mqtt_incoming_publish_cb(void *arg, const char *topic, u32_t tot_len) {
+	printf("Incoming publish at topic %s with total length %u\n", topic,
+			(unsigned int) tot_len);
 
-  /* Decode topic string into a user defined reference */
-  if(strcmp(topic, "print_payload") == 0) {
-    inpub_id = 0;
-  } else if(topic[0] == 'A') {
-    /* All topics starting with 'A' might be handled at the same way */
-    inpub_id = 1;
-  } else {
-    /* For all other topics */
-    inpub_id = 2;
-  }
+	/* Decode topic string into a user defined reference */
+	if (strcmp(topic, "print_payload") == 0) {
+		inpub_id = 0;
+	} else if (topic[0] == 'A') {
+		/* All topics starting with 'A' might be handled at the same way */
+		inpub_id = 1;
+	} else {
+		/* For all other topics */
+		inpub_id = 2;
+	}
 }
 
 /*
------------------------------------------------------------------
-Implementing the subscription request status callback
-*/
+ -----------------------------------------------------------------
+ Implementing the subscription request status callback
+ */
 
-void mqtt_sub_request_cb(void *arg, err_t result)
-{
-  /* Just print the result code here for simplicity,
-     normal behaviour would be to take some action if subscribe fails like
-     notifying user, retry subscribe or disconnect from server */
-  printf("Subscribe result: %d\n", result);
+void mqtt_sub_request_cb(void *arg, err_t result) {
+	/* Just print the result code here for simplicity,
+	 normal behaviour would be to take some action if subscribe fails like
+	 notifying user, retry subscribe or disconnect from server */
+	printf("Subscribe result: %d\n", result);
 }
 /*
------------------------------------------------------------------
-Implementing the connection status callback
-*/
+ -----------------------------------------------------------------
+ Implementing the connection status callback
+ */
 
-void mqtt_connection_cb(mqtt_client_t *client, void *arg, mqtt_connection_status_t status)
-{
-  err_t err;
-  if(status == MQTT_CONNECT_ACCEPTED) {
-    printf("mqtt_connection_cb: Successfully connected\n");
+void mqtt_connection_cb(mqtt_client_t *client, void *arg,
+		mqtt_connection_status_t status) {
+	err_t err;
+	if (status == MQTT_CONNECT_ACCEPTED) {
+		printf("mqtt_connection_cb: Successfully connected\n");
 
-    /* Setup callback for incoming publish requests */
-    mqtt_set_inpub_callback(client, mqtt_incoming_publish_cb, mqtt_incoming_data_cb, arg);
+		/* Setup callback for incoming publish requests */
+		mqtt_set_inpub_callback(client, mqtt_incoming_publish_cb,
+				mqtt_incoming_data_cb, arg);
 
-    /* Subscribe to a topic named "subtopic" with QoS level 1, call mqtt_sub_request_cb with result */
-    err = mqtt_subscribe(client, "PW/V2/CIAA_NXP/RQ/#", 0, mqtt_sub_request_cb, arg);
+		/* Subscribe to a topic named "subtopic" with QoS level 1, call mqtt_sub_request_cb with result */
+		err = mqtt_subscribe(client, "PW/V2/CIAA_NXP/RQ/#", 0,
+				mqtt_sub_request_cb, arg);
 
-    if(err != ERR_OK) {
-      printf("mqtt_subscribe return: %d\n", err);
-    }
-  } else {
-    printf("mqtt_connection_cb: Disconnected, reason: %d\n", status);
+		if (err != ERR_OK) {
+			printf("mqtt_subscribe return: %d\n", err);
+		}
+	} else {
+		printf("mqtt_connection_cb: Disconnected, reason: %d\n", status);
 
-    /* Its more nice to be connected, so try to reconnect */
-    mqtt_client_do_connect(client);
-  }
+		/* Its more nice to be connected, so try to reconnect */
+		mqtt_client_do_connect(client);
+	}
 }
 
 /*-----------------------------------------------------------------------------------*/
@@ -154,15 +199,26 @@ static void mqtt_client_thread(void *arg) {
 		mqtt_client_do_connect(client);
 	}
 
-	while (1) {
-		mqtt_client_publish(client, NULL);
-		vTaskDelay(500 / portTICK_RATE_MS);
+	uint32_t i = 0;
+	char testPayload[20],numBuffer[10];
+	memset(&numBuffer, 0, sizeof(numBuffer));
+	messageMqtt_t msg = { 0, 0, "PW/V2/CIAA_NXP/NY/TEST", "TEST:" };
 
+
+	while (1) {
+		memset(&testPayload, 0, sizeof(testPayload));
+		itoa( i, numBuffer, 10 );
+		msg.payload=strcat(testPayload,"TEST:");
+		msg.payload=strcat(testPayload,numBuffer);
+		mqtt_client_publish(client, (void*) &msg);
+		vTaskDelay(1000 / portTICK_RATE_MS);
+		i++;
 	}
 }
 /*-----------------------------------------------------------------------------------*/
 void mqtt_client_init(void) {
-	sys_thread_new("mqtt_client_thread", mqtt_client_thread, NULL, DEFAULT_THREAD_STACKSIZE, DEFAULT_THREAD_PRIO+1);
+	sys_thread_new("mqtt_client_thread", mqtt_client_thread, NULL,
+	DEFAULT_THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
 }
 
 /*
@@ -187,7 +243,8 @@ void mqtt_client_do_connect(mqtt_client_t *client) {
 
 	IP4_ADDR(&ip_addr, 142, 93, 0, 227);
 
-	err = mqtt_client_connect(client, &ip_addr, MQTT_PORT, mqtt_connection_cb, 0, &ci);
+	err = mqtt_client_connect(client, &ip_addr, MQTT_PORT, mqtt_connection_cb,
+			0, &ci);
 
 	/* For now just print the result code if something goes wrong */
 	if (err != ERR_OK) {
@@ -195,9 +252,5 @@ void mqtt_client_do_connect(mqtt_client_t *client) {
 	}
 }
 /*-----------------------------------------------------------------------------------*/
-
-
-
-
 
 #endif /* LWIP_NETCONN */

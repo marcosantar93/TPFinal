@@ -33,10 +33,6 @@
 #ifndef __MQTT_CLIENT_H__
 #define __MQTT_CLIENT_H__
 
-/* CONSTANTS
- * */
-#define MQTT_PORT 1883
-
 /* INCLUDES
  * */
 
@@ -46,6 +42,20 @@
 #include "lwip/ip_addr.h"
 #include "lwip/mqtt.h"
 #include "string.h"
+
+/* CONSTANTS
+ * */
+#define MQTT_PORT 1883
+
+/* TYPEDEFS
+ * */
+typedef struct {
+	uint8_t qos;
+	uint8_t retain;
+	char* topic;
+	char* payload;
+} messageMqtt_t;
+
 
 /* FUNCTION DECLARATIONS
  * */
