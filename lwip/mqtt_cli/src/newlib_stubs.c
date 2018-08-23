@@ -4,7 +4,7 @@
  */
 
 
-#include "newlib_stubs.h"
+#include "../../mqtt_cli/inc/newlib_stubs.h"
 
 
 

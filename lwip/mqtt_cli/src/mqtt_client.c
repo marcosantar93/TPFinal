@@ -73,7 +73,7 @@ char* itoa(int value, char* result, int base) {
 }
 
 /* Called when publish is complete either with sucess or failure */
-static void mqtt_pub_request_cb(void *arg, err_t result) {
+void mqtt_pub_request_cb(void *arg, err_t result) {
 	if (result != ERR_OK) {
 		printf("Publish result: %d\n", result);
 	}
@@ -94,8 +94,7 @@ void mqtt_client_publish(mqtt_client_t *client, void *arg) {
 	} else {
 		err_t err;
 		err = mqtt_publish(client, "PW/V2/CIAA_NXP/TEST", "ERROR:ARGSTOFUNC",
-				strlen("ERROR:ARGSTOFUNC"), 0, 0,
-				mqtt_pub_request_cb, NULL); //What's better, a general callback or unique callbacks?
+				strlen("ERROR:ARGSTOFUNC"), 0, 0, mqtt_pub_request_cb, NULL); //What's better, a general callback or unique callbacks?
 		if (err != ERR_OK) {
 			printf("Publish err: %d\n", err);
 		}
@@ -161,14 +160,43 @@ void mqtt_sub_request_cb(void *arg, err_t result) {
 	 notifying user, retry subscribe or disconnect from server */
 	printf("Subscribe result: %d\n", result);
 }
+
+
+/*-----------------------------------------------------------------------------------*/
+
+static void mqtt_client_test_thread(void *arg) {
+
+	//Cast arg into client
+	mqtt_client_t *client = (mqtt_client_t*) arg;
+	//If everything is ok, send stuff every second
+	if (client != NULL) {
+		uint32_t i = 0;
+		char testPayload[20], numBuffer[10];
+		memset(&numBuffer, 0, sizeof(numBuffer));
+		messageMqtt_t msg = { 0, 0, "PW/V2/CIAA_NXP/NY/TEST", "TEST:" };
+
+		while (1) {
+			memset(&testPayload, 0, sizeof(testPayload));
+			itoa(i, numBuffer, 10);
+			msg.payload = strcat(testPayload, "TEST:");
+			msg.payload = strcat(testPayload, numBuffer);
+			mqtt_client_publish(client, (void*) &msg);
+			vTaskDelay(1000 / portTICK_RATE_MS);
+			i++;
+		}
+	}
+}
+
 /*
- -----------------------------------------------------------------
- Implementing the connection status callback
+ * -----------------------------------------------------------------
+ * Implementing the "connection state change" callback
  */
 
 void mqtt_connection_cb(mqtt_client_t *client, void *arg,
 		mqtt_connection_status_t status) {
 	err_t err;
+	static xTaskHandle mqtt_client_test_handler = NULL;
+
 	if (status == MQTT_CONNECT_ACCEPTED) {
 		printf("mqtt_connection_cb: Successfully connected\n");
 
@@ -179,12 +207,21 @@ void mqtt_connection_cb(mqtt_client_t *client, void *arg,
 		/* Subscribe to a topic named "subtopic" with QoS level 1, call mqtt_sub_request_cb with result */
 		err = mqtt_subscribe(client, "PW/V2/CIAA_NXP/RQ/#", 0,
 				mqtt_sub_request_cb, arg);
-
 		if (err != ERR_OK) {
 			printf("mqtt_subscribe return: %d\n", err);
 		}
+
+		/* Create test task after connection. Theoretically, messages can be sent at this point*/
+		mqtt_client_test_handler = sys_thread_new("mqtt_client_test_thread",
+				mqtt_client_test_thread, (void*) client,
+				DEFAULT_THREAD_STACKSIZE, DEFAULT_THREAD_PRIO + 1);
+
 	} else {
 		printf("mqtt_connection_cb: Disconnected, reason: %d\n", status);
+
+		/* If a test task was created, delete it before attempting reconnection */
+		if (mqtt_client_test_handler != NULL)
+			vTaskDelete(mqtt_client_test_handler);
 
 		/* Its more nice to be connected, so try to reconnect */
 		mqtt_client_do_connect(client);
@@ -192,33 +229,11 @@ void mqtt_connection_cb(mqtt_client_t *client, void *arg,
 }
 
 /*-----------------------------------------------------------------------------------*/
-static void mqtt_client_thread(void *arg) {
-
+void mqtt_client_init(void) {
 	mqtt_client_t *client = mqtt_client_new();
 	if (client != NULL) {
 		mqtt_client_do_connect(client);
 	}
-
-	uint32_t i = 0;
-	char testPayload[20],numBuffer[10];
-	memset(&numBuffer, 0, sizeof(numBuffer));
-	messageMqtt_t msg = { 0, 0, "PW/V2/CIAA_NXP/NY/TEST", "TEST:" };
-
-
-	while (1) {
-		memset(&testPayload, 0, sizeof(testPayload));
-		itoa( i, numBuffer, 10 );
-		msg.payload=strcat(testPayload,"TEST:");
-		msg.payload=strcat(testPayload,numBuffer);
-		mqtt_client_publish(client, (void*) &msg);
-		vTaskDelay(1000 / portTICK_RATE_MS);
-		i++;
-	}
-}
-/*-----------------------------------------------------------------------------------*/
-void mqtt_client_init(void) {
-	sys_thread_new("mqtt_client_thread", mqtt_client_thread, NULL,
-	DEFAULT_THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
 }
 
 /*
@@ -244,7 +259,7 @@ void mqtt_client_do_connect(mqtt_client_t *client) {
 	IP4_ADDR(&ip_addr, 142, 93, 0, 227);
 
 	err = mqtt_client_connect(client, &ip_addr, MQTT_PORT, mqtt_connection_cb,
-			0, &ci);
+	NULL, &ci);
 
 	/* For now just print the result code if something goes wrong */
 	if (err != ERR_OK) {

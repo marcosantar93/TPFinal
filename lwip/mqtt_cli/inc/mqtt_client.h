@@ -59,8 +59,13 @@ typedef struct {
 
 /* FUNCTION DECLARATIONS
  * */
+void mqtt_pub_request_cb(void *arg, err_t result);
 void mqtt_client_publish(mqtt_client_t *client, void *arg);
-void mqtt_client_do_connect(mqtt_client_t *client);
+void mqtt_incoming_data_cb(void *arg, const u8_t *data, u16_t len, u8_t flags);
+void mqtt_incoming_publish_cb(void *arg, const char *topic, u32_t tot_len);
+void mqtt_sub_request_cb(void *arg, err_t result);
+void mqtt_connection_cb(mqtt_client_t *client, void *arg, mqtt_connection_status_t status);
 void mqtt_client_init(void);
+void mqtt_client_do_connect(mqtt_client_t *client);
 
-#endif /* __TCPECHO_H__ */
+#endif /* __MQTT_CLIENT_H__ */

@@ -29,6 +29,7 @@
  * this code.
  */
 
+#include "../../mqtt_cli/inc/lwipopts.h"
 #include "lwip/init.h"
 #include "lwip/opt.h"
 #include "lwip/sys.h"
@@ -39,7 +40,6 @@
 #include "lwip/timers.h"
 #include "netif/etharp.h"
 #include "lwip/mqtt.h"
-#include "lwipopts.h"
 
 #if LWIP_DHCP
 #include "lwip/dhcp.h"
@@ -55,7 +55,6 @@
 #include "arch/lpc_arch.h"
 #include "arch/sys_arch.h"
 #include "lpc_phy.h"/* For the PHY monitor support */
-#include "tcpecho.h"
 #include "mqtt_client.h"
 
 #if defined(lpc4337_m4)
@@ -144,7 +143,7 @@ static void vSetupIFTask (void *pvParameters) {
 #endif
 
 	/* Initialize and start application */
-	tcpecho_init();
+//	tcpecho_init(); //Thread from example. Program works without it
 	mqtt_client_init();
 	/* This loop monitors the PHY link and will handle cable events
 	   via the PHY driver. */
@@ -244,9 +243,7 @@ int main(void)
 
 	/* Add another thread for initializing physical interface. This
 	   is delayed from the main LWIP initialization. */
-	xTaskCreate(vSetupIFTask, (signed char *) "SetupIFx",
-				configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL),
-				(xTaskHandle *) NULL);
+	xTaskCreate(vSetupIFTask, (signed char *) "SetupIFx", configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 1UL), (xTaskHandle *) NULL);
 
 	/* Start the scheduler */
 	vTaskStartScheduler();

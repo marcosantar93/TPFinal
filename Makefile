@@ -32,7 +32,7 @@
 
 -include project.mk
 
-PROJECT ?= lwip/freertos_tcpecho
+PROJECT ?= lwip/mqtt_cli
 TARGET ?= lpc4337_m4
 BOARD ?= ciaa_nxp
 
