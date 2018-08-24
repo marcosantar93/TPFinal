@@ -82,22 +82,18 @@ void mqtt_pub_request_cb(void *arg, err_t result) {
 // Using outgoing publish
 
 void mqtt_client_publish(mqtt_client_t *client, void *arg) {
+	err_t err = ERR_OK;
+
 	messageMqtt_t *msg = (messageMqtt_t*) arg;
-	if (msg != NULL) {
-		err_t err;
+	if (msg != NULL)
 		err = mqtt_publish(client, msg->topic, msg->payload,
 				strlen(msg->payload), msg->qos, msg->retain,
 				mqtt_pub_request_cb, NULL); //What's better, a general callback or unique callbacks?
-		if (err != ERR_OK) {
-			printf("Publish err: %d\n", err);
-		}
-	} else {
-		err_t err;
-		err = mqtt_publish(client, "PW/V2/CIAA_NXP/TEST", "ERROR:ARGSTOFUNC",
-				strlen("ERROR:ARGSTOFUNC"), 0, 0, mqtt_pub_request_cb, NULL); //What's better, a general callback or unique callbacks?
-		if (err != ERR_OK) {
-			printf("Publish err: %d\n", err);
-		}
+
+	if (err != ERR_OK) {
+		//Whenever we can not forward a message, it's because we were disconnected.
+		NVIC_SystemReset(); /* If we could not connect after 10 attempts, we give up and reset*/
+		printf("Publish err: %d\n", err);
 	}
 }
 
