@@ -143,7 +143,6 @@ static void vSetupIFTask (void *pvParameters) {
 #endif
 
 	/* Initialize and start application */
-//	tcpecho_init(); //Thread from example. Program works without it
 	mqtt_client_init();
 	/* This loop monitors the PHY link and will handle cable events
 	   via the PHY driver. */

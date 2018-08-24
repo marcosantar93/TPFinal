@@ -46,7 +46,7 @@
 /* CONSTANTS
  * */
 #define MQTT_PORT 1883
-
+#define MAX_CONNECT_TRIES 10
 /* TYPEDEFS
  * */
 typedef struct {
@@ -55,6 +55,11 @@ typedef struct {
 	char* topic;
 	char* payload;
 } messageMqtt_t;
+
+typedef enum {
+	MQTT_IS_CONNECTED,
+	MQTT_IS_CONNECTING
+} mqttConnState_t;
 
 
 /* FUNCTION DECLARATIONS
